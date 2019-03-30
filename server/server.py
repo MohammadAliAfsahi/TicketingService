@@ -139,7 +139,7 @@ class login(BaseHandler):
         password = self.get_argument('password')
         if self.check_auth(username,password):
             api_token = str(hexlify(os.urandom(16)))
-            self.db.execute("UPDATE user set apitoken=%s where username=%s and password = %s",api_token,args[0],args[1])
+            self.db.execute("UPDATE user set apitoken=%s where username=%s and password = %s",api_token,username,password)
             user = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
             output = {
                     "message": "Logged in Successfully",
@@ -176,6 +176,53 @@ class logout(BaseHandler):
             self.write(output)
         else:
             output = {'status': 'FALSE'}
+            self.write(output)
+
+class SendTicket(BaseHandler):
+    def get(self, *args,**kwargs):
+        if self.check_auth(args[0],args[1]):
+            user_old = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
+
+            if user_old.balance < int(args[2]) :
+                output = {'status' : 'Insufficient Balance'}
+                self.write(output)
+                return
+
+            self.db.execute("UPDATE user set balance = balance - %s where username=%s and password = %s", int(args[2]), args[0],args[1])
+            user_new = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
+            output = {'API': user_new.api,
+                      'Command': 'Withdraw',
+                      'Username': user_new.username,
+                      'Old Balance': user_old.balance,
+                      'New Balance': user_new.balance}
+            self.write(output)
+
+        else:
+            output = {'status': 'Wrong Authentication'}
+            self.write(output)
+
+    def post(self, *args, **kwargs):
+        username = self.get_argument('username')
+        password = self.get_argument('password')
+        amount = self.get_argument('amount')
+        if self.check_auth(username, password):
+            user_old = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
+            if user_old.balance < int(amount) :
+                output = {'status': 'Insufficient Balance'}
+                self.write(output)
+                return
+            self.db.execute("UPDATE user set balance = balance - %s where username=%s and password = %s", int(amount),
+                            username, password)
+            user_new = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
+            output = {'API': user_new.api,
+                      'Command': 'Deposit',
+                      'Username': user_new.username,
+                      'Old Balance': user_old.balance,
+                      'New Balance': user_new.balance}
+            self.write(output)
+
+        else:
+            output = {'status': 'Wrong Authentication'}
             self.write(output)
 
 class getTicket(BaseHandler):
@@ -336,53 +383,6 @@ class apiwithdraw(BaseHandler):
             self.write(output)
         else:
             output = {'status': 'Wrong API'}
-            self.write(output)
-
-class SendTicket(BaseHandler):
-    def get(self, *args,**kwargs):
-        if self.check_auth(args[0],args[1]):
-            user_old = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
-
-            if user_old.balance < int(args[2]) :
-                output = {'status' : 'Insufficient Balance'}
-                self.write(output)
-                return
-
-            self.db.execute("UPDATE user set balance = balance - %s where username=%s and password = %s", int(args[2]), args[0],args[1])
-            user_new = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
-            output = {'API': user_new.api,
-                      'Command': 'Withdraw',
-                      'Username': user_new.username,
-                      'Old Balance': user_old.balance,
-                      'New Balance': user_new.balance}
-            self.write(output)
-
-        else:
-            output = {'status': 'Wrong Authentication'}
-            self.write(output)
-
-    def post(self, *args, **kwargs):
-        username = self.get_argument('username')
-        password = self.get_argument('password')
-        amount = self.get_argument('amount')
-        if self.check_auth(username, password):
-            user_old = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
-            if user_old.balance < int(amount) :
-                output = {'status': 'Insufficient Balance'}
-                self.write(output)
-                return
-            self.db.execute("UPDATE user set balance = balance - %s where username=%s and password = %s", int(amount),
-                            username, password)
-            user_new = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
-            output = {'API': user_new.api,
-                      'Command': 'Deposit',
-                      'Username': user_new.username,
-                      'Old Balance': user_old.balance,
-                      'New Balance': user_new.balance}
-            self.write(output)
-
-        else:
-            output = {'status': 'Wrong Authentication'}
             self.write(output)
 
 class help(BaseHandler):
