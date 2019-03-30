@@ -21,24 +21,24 @@ class Application(tornado.web.Application):
         handlers = [
             #GET METHOD :
             (r"/signup/([^/]+)/([^/]+)", signup),
-            (r"/getTicket/([^/]+)", getTicket), #Balance Using API Format : /getTicket/API
-            (r"/GetTicket/([^/]+)/([^/]+)", GetTicket),  # Balance Using Authentication Format : /GetTicket/Username/Password
-            (r"/apideposit/([^/]+)/([^/]+)", apideposit),  # deposit Using API Format : /apideposit/API/Amount
+            (r"/closeticket/([^/]+)", closeticket), #Balance Using API Format : /closeticket/API
+            (r"/getticketcli/([^/]+)/([^/]+)", getticketcli),  # Balance Using Authentication Format : /getticketcli/Username/Password
+            (r"/getticketmod/([^/]+)/([^/]+)", getticketmod),  # deposit Using API Format : /getticketmod/API/Amount
             (r"/ChangeStatus/([^/]+)/([^/]+)/([^/]+)", ChangeStatus),  # deposit Using Authentication Format : /ChangeStatus/Username/Password/Amount
             (r"/apiwithdraw/([^/]+)/([^/]+)", apiwithdraw), # Withdraw Using API Format : /apiwithdraw/API/amount
-            (r"/SendTicket/([^/]+)/([^/]+)/([^/]+)", SendTicket),   # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
+            (r"/sendticket/([^/]+)/([^/]+)/([^/]+)", sendticket),   # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
             (r"/login/([^/]+)/([^/]+)", login),
             (r"/logout/([^/]+)/([^/]+)", logout),
             # POST METHOD :
             (r"/signup", signup),
-            (r"/getTicket", getTicket),  # Balance Using API Format : /getTicket/API
-            (r"/GetTicket", GetTicket),# Balance Using Authentication Format : /GetTicket/Username/Password
-            (r"/apideposit", apideposit),  # deposit Using API Format : /apideposit/API/Amount
+            (r"/closeticket", closeticket),  # Balance Using API Format : /closeticket/API
+            (r"/getticketcli", getticketcli),# Balance Using Authentication Format : /getticketcli/Username/Password
+            (r"/getticketmod", getticketmod),  # deposit Using API Format : /getticketmod/API/Amount
             (r"/ChangeStatus", ChangeStatus), # deposit Using Authentication Format : /ChangeStatus/Username/Password/Amount
             (r"/apiwithdraw", apiwithdraw),# Withdeaw Using API Format : /apiwithdraw/API/amount
             (r"/login", login),
             (r"/logout", logout),
-            (r"/SendTicket", SendTicket), # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
+            (r"/sendticket", sendticket), # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
             (r".*", defaulthandler),
         ]
         settings = dict()
@@ -178,7 +178,7 @@ class logout(BaseHandler):
             output = {'status': 'FALSE'}
             self.write(output)
 
-class SendTicket(BaseHandler):
+class sendticket(BaseHandler):
     def get(self, *args,**kwargs):
         if self.check_auth(args[0],args[1]):
             user = self.db.get("SELECT * from user where apitoken=%s", args[0])
@@ -222,36 +222,39 @@ class SendTicket(BaseHandler):
             output = {'status': 'Wrong Authentication'}
             self.write(output)
 
-class getTicket(BaseHandler):
+class closeticket(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
-            user = self.db.get("SELECT * from user where apitoken = %s",args[0])
-            output = {'API' : user.apitoken,
-                      'Command': 'Balance',
-                'Username' : user.username,
-                      'Balance' : user.balance
-                      }
+            self.db.get("SELECT * from user where apitoken = %s",args[0])
+            self.db.execute("UPDATE tickets set status=%s where id = %s","Close",args[1])
+            message = "Ticket With id -"+str(args[1])+"- Closed Successfully"
+            output = {
+                        "message": message,
+                        "code": "200"
+                    }
             self.write(output)
 
         else :
             self.write("Wrong API")
     def post(self, *args, **kwargs):
-        api_token=self.get_argument('api')
+        api_token = self.get_argument('token')
+        id_ticket = self.get_argument('id')
         if self.check_api(api_token):
-            user = self.db.get("SELECT * from user where apitoken = %s",api_token)
-            output = {'API' : user.apitoken,
-                      'Command': 'Balance',
-                'Username' : user.username,
-                      'Balance' : user.balance
-                      }
+            self.db.get("SELECT * from user where apitoken = %s",api_token)
+            self.db.execute("UPDATE tickets set status=%s where id = %s","Close",id_ticket)
+            message = "Ticket With id -"+str(id_ticket)+"- Closed Successfully"
+            output = {
+                        "message": message,
+                        "code": "200"
+                    }
+
             self.write(output)
         else :
             self.write("Wrong API")
 
-class GetTicket(BaseHandler):
+class getticketcli(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
-            self.db.al
             user = self.db.get("SELECT * from user where apitoken = %s", args[0])
             tickets = self.db.query("SELECT * from tickets where userid = %s",user.id)
             No = "There Are -"+str(len(tickets))+"- Ticket"
@@ -301,7 +304,7 @@ class GetTicket(BaseHandler):
             self.write(output)
 
 
-class apideposit(BaseHandler):
+class getticketmod(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
             user_old = self.db.get("SELECT * from user where apitoken = %s", args[0])
