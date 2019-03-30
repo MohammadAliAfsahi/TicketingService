@@ -182,6 +182,7 @@ class SendTicket(BaseHandler):
     def get(self, *args,**kwargs):
         if self.check_auth(args[0],args[1]):
             user = self.db.get("SELECT * from user where apitoken=%s", args[0])
+           
             status = "Open"
 
             ticket_id = self.db.execute("INSERT INTO tickets (subject, body, status, userid) "
@@ -249,24 +250,25 @@ class getTicket(BaseHandler):
 
 class GetTicket(BaseHandler):
     def get(self,*args):
-        if self.check_auth(args[0],args[1]):
+        if self.check_api(args[0]):
+            self.db.al
             user = self.db.get("SELECT * from user where apitoken = %s", args[0])
-            tickets = self.db.get("SELECT * from tickets where userid = %s",user.id)
-            No = "There Are -"len(tickets)"- Ticket"
+            tickets = self.db.query("SELECT * from tickets where userid = %s",user.id)
+            No = "There Are -"+str(len(tickets))+"- Ticket"
             output = {
                         "tickets": No,
                         "code": "200"
                     }
             for i in range(len(tickets)):
-                output.update({
-                            "block "+i:{
-                                "subject" : tickets[i].subject,
-                                "body" : tickets[i].body,
-                                "status" : tickets[i].status,
-                                "id" : tickets[i].id,
-                                "date" : tickets[i].date
-                            }
-                            })
+                block = {
+                            "subject" : tickets[i]['subject'],
+                            "body" : tickets[i]['body'],
+                            "status" : tickets[i]['status'],
+                            "id" : tickets[i]['id'],
+                            "date" : str(tickets[i]["date"])
+                        }
+                string = "block "+str(i)
+                output.update({string:block})
 
             self.write(output)
         else :
@@ -274,24 +276,24 @@ class GetTicket(BaseHandler):
             self.write(output)
     def post(self, *args, **kwargs):
         token = self.get_argument('token')
-        if self.check_auth(username,password):
+        if self.check_api(token):
             user = self.db.get("SELECT * from user where apitoken = %s", token)
-            tickets = self.db.get("SELECT * from tickets where userid = %s",user.id)
-            No = "There Are -"len(tickets)"- Ticket"
+            tickets = self.db.query("SELECT * from tickets where userid = %s",user.id)
+            No = "There Are -"+str(len(tickets))+"- Ticket"
             output = {
                         "tickets": No,
                         "code": "200"
                     }
             for i in range(len(tickets)):
-                output.update({
-                            "block "+i:{
-                                "subject" : tickets[i].subject,
-                                "body" : tickets[i].body,
-                                "status" : tickets[i].status,
-                                "id" : tickets[i].id,
-                                "date" : tickets[i].date
-                            }
-                            })
+                block = {
+                            "subject" : tickets[i]['subject'],
+                            "body" : tickets[i]['body'],
+                            "status" : tickets[i]['status'],
+                            "id" : tickets[i]['id'],
+                            "date" : str(tickets[i]["date"])
+                        }
+                string = "block "+str(i)
+                output.update({string:block})
 
             self.write(output)
         else :
