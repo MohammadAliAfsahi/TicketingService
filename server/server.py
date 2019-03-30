@@ -11,7 +11,7 @@ from tornado.options import define, options
 
 define("port", default=1104, help="run on the given port", type=int)
 define("mysql_host", default="127.0.0.1:3306", help="blog database host")
-define("mysql_database", default="bank", help="blog database name")
+define("mysql_database", default="ticket", help="blog database name")
 define("mysql_user", default="root", help="blog database user")
 define("mysql_password", default="", help="blog database password")
 
@@ -26,9 +26,9 @@ class Application(tornado.web.Application):
             (r"/apideposit/([^/]+)/([^/]+)", apideposit),  # deposit Using API Format : /apideposit/API/Amount
             (r"/ChangeStatus/([^/]+)/([^/]+)/([^/]+)", ChangeStatus),  # deposit Using Authentication Format : /ChangeStatus/Username/Password/Amount
             (r"/apiwithdraw/([^/]+)/([^/]+)", apiwithdraw), # Withdraw Using API Format : /apiwithdraw/API/amount
-            (r"/authwithdraw/([^/]+)/([^/]+)/([^/]+)", authwithdraw),   # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
-            (r"/authcheck/([^/]+)/([^/]+)", authcheck),
-            (r"/apicheck/([^/]+)", apicheck),
+            (r"/SendTicket/([^/]+)/([^/]+)/([^/]+)", SendTicket),   # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
+            (r"/login/([^/]+)/([^/]+)", login),
+            (r"/logout/([^/]+)", logout),
             # POST METHOD :
             (r"/signup", signup),
             (r"/getTicket", getTicket),  # Balance Using API Format : /getTicket/API
@@ -36,9 +36,9 @@ class Application(tornado.web.Application):
             (r"/apideposit", apideposit),  # deposit Using API Format : /apideposit/API/Amount
             (r"/ChangeStatus", ChangeStatus), # deposit Using Authentication Format : /ChangeStatus/Username/Password/Amount
             (r"/apiwithdraw", apiwithdraw),# Withdeaw Using API Format : /apiwithdraw/API/amount
-            (r"/authcheck", authcheck),
-            (r"/apicheck", apicheck),
-            (r"/authwithdraw", authwithdraw), # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
+            (r"/login", login),
+            (r"/logout", logout),
+            (r"/SendTicket", SendTicket), # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
             (r".*", defaulthandler),
         ]
         settings = dict()
@@ -86,9 +86,9 @@ class signup(BaseHandler):
     def get(self,*args):
         if not self.check_user(args[0]):
             api_token = str(hexlify(os.urandom(16)))
-            user_id = self.db.execute("INSERT INTO user (username, password, balance ,api) "
+            user_id = self.db.execute("INSERT INTO user (username, password, firstname ,lastname,apitoken) "
                                      "values (%s,%s,%s,%s) "
-                                     , args[0],args[1],0,api_token)
+                                     , args[0],args[1],args[2],args[3],api_token)
 
             output = {'api': api_token,
                       'status': 'OK'}
@@ -99,11 +99,13 @@ class signup(BaseHandler):
     def post(self, *args, **kwargs):
         username = self.get_argument('username')
         password = self.get_argument('password')
+        firstname = self.get_argument('firstname')
+        lastname = self.get_argument('lastname')
         if not self.check_user(username):
             api_token = str(hexlify(os.urandom(16)))
-            user_id = self.db.execute("INSERT INTO user (username, password, balance ,api) "
+            user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken) "
                                      "values (%s,%s,%s,%s) "
-                                     , username,password,0,api_token)
+                                     , username,password,firstname,lastname,api_token)
 
             output = {'api' : api_token,
                       'status' : 'OK'}
@@ -274,7 +276,7 @@ class apiwithdraw(BaseHandler):
             output = {'status': 'Wrong API'}
             self.write(output)
 
-class authwithdraw(BaseHandler):
+class SendTicket(BaseHandler):
     def get(self, *args,**kwargs):
         if self.check_auth(args[0],args[1]):
             user_old = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
@@ -327,7 +329,7 @@ class help(BaseHandler):
        self.write("Tornado is Runnig")
 
 
-class authcheck(BaseHandler):
+class login(BaseHandler):
     def get(self, *args, **kwargs):
         if self.check_auth(args[0],args[1]):
             user = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
@@ -353,7 +355,7 @@ class authcheck(BaseHandler):
             self.write(output)
 
 
-class apicheck(BaseHandler):
+class logout(BaseHandler):
     def get(self, *args, **kwargs):
         if self.check_api(args[0]):
             user = self.db.get("SELECT * from user where api = %s", args[0])
