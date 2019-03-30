@@ -87,7 +87,7 @@ class signup(BaseHandler):
         if not self.check_user(args[0]):
             api_token = str(hexlify(os.urandom(16)))
             user_id = self.db.execute("INSERT INTO user (username, password, firstname ,lastname,apitoken) "
-                                     "values (%s,%s,%s,%s) "
+                                     "values (%s,%s,%s,%s,%s) "
                                      , args[0],args[1],args[2],args[3],api_token)
 
             output = {'api': api_token,
@@ -104,7 +104,7 @@ class signup(BaseHandler):
         if not self.check_user(username):
             api_token = str(hexlify(os.urandom(16)))
             user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken) "
-                                     "values (%s,%s,%s,%s) "
+                                     "values (%s,%s,%s,%s,%s) "
                                      , username,password,firstname,lastname,api_token)
 
             output = {'api' : api_token,
