@@ -28,7 +28,7 @@ class Application(tornado.web.Application):
             (r"/apiwithdraw/([^/]+)/([^/]+)", apiwithdraw), # Withdraw Using API Format : /apiwithdraw/API/amount
             (r"/SendTicket/([^/]+)/([^/]+)/([^/]+)", SendTicket),   # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
             (r"/login/([^/]+)/([^/]+)", login),
-            (r"/logout/([^/]+)", logout),
+            (r"/logout/([^/]+)/([^/]+)", logout),
             # POST METHOD :
             (r"/signup", signup),
             (r"/getTicket", getTicket),  # Balance Using API Format : /getTicket/API
@@ -85,9 +85,9 @@ class signup(BaseHandler):
     def get(self,*args):
         if not self.check_user(args[0]):
             api_token = str(hexlify(os.urandom(16)))
-            user_id = self.db.execute("INSERT INTO user (username, password, firstname ,lastname,apitoken) "
+            user_id = self.db.execute("INSERT INTO user (username, password, firstname ,lastname,apitoken,admin) "
                                      "values (%s,%s,%s,%s,%s) "
-                                     , args[0],args[1],args[2],args[3],api_token)
+                                     , args[0],args[1],args[2],args[3],api_token,False)
 
             output = {
                         "message": "Signed Up Successfully",
@@ -105,9 +105,9 @@ class signup(BaseHandler):
         lastname = self.get_argument('lastname')
         if not self.check_user(username):
             api_token = str(hexlify(os.urandom(16)))
-            user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken) "
+            user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken,admin) "
                                      "values (%s,%s,%s,%s,%s) "
-                                     , username,password,firstname,lastname,api_token)
+                                     , username,password,firstname,lastname,api_token,False)
 
             output = {
                         "message": "Signed Up Successfully",
@@ -127,7 +127,7 @@ class login(BaseHandler):
             output = {
                     "message": "Logged in Successfully",
                     "code": "200",
-                     "api" : user.apitoken,
+                     "token" : user.apitoken,
                     }
             self.write(output)
         else:
@@ -144,7 +144,7 @@ class login(BaseHandler):
             output = {
                     "message": "Logged in Successfully",
                     "code": "200",
-                     "api" : user.apitoken,
+                     "token" : user.apitoken,
                     }
             self.write(output)
         else:
@@ -181,44 +181,40 @@ class logout(BaseHandler):
 class SendTicket(BaseHandler):
     def get(self, *args,**kwargs):
         if self.check_auth(args[0],args[1]):
-            user_old = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
+            user = self.db.get("SELECT * from user where apitoken=%s", args[0])
+            status = "Open"
 
-            if user_old.balance < int(args[2]) :
-                output = {'status' : 'Insufficient Balance'}
-                self.write(output)
-                return
+            ticket_id = self.db.execute("INSERT INTO tickets (subject, body, status, userid) "
+                                     "values (%s,%s,%s,%s) "
+                                     , args[1],args[2],status,user.id)
+            output ={
+                        "message": "Ticket Sent Successfully",
+                        "id": ticket_id,
+                        "code": "200"
+                    }
 
-            self.db.execute("UPDATE user set balance = balance - %s where username=%s and password = %s", int(args[2]), args[0],args[1])
-            user_new = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
-            output = {'API': user_new.api,
-                      'Command': 'Withdraw',
-                      'Username': user_new.username,
-                      'Old Balance': user_old.balance,
-                      'New Balance': user_new.balance}
+                      
             self.write(output)
 
         else:
-            output = {'status': 'Wrong Authentication'}
+            output = {'code': '400'}
             self.write(output)
 
     def post(self, *args, **kwargs):
-        username = self.get_argument('username')
-        password = self.get_argument('password')
-        amount = self.get_argument('amount')
-        if self.check_auth(username, password):
-            user_old = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
-            if user_old.balance < int(amount) :
-                output = {'status': 'Insufficient Balance'}
-                self.write(output)
-                return
-            self.db.execute("UPDATE user set balance = balance - %s where username=%s and password = %s", int(amount),
-                            username, password)
-            user_new = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
-            output = {'API': user_new.api,
-                      'Command': 'Deposit',
-                      'Username': user_new.username,
-                      'Old Balance': user_old.balance,
-                      'New Balance': user_new.balance}
+        token = self.get_argument('token')
+        subject = self.get_argument('subject')
+        body = self.get_argument('body')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken=%s", token)
+            status = "Open"
+            ticket_id = self.db.execute("INSERT INTO tickets (subject, body, status, userid) "
+                                     "values (%s,%s,%s,%s)"
+                                     , subject,body,status,user.id)
+            output ={
+                        "message": "Ticket Sent Successfully",
+                        "id": ticket_id,
+                        "code": "200"
+                    }
             self.write(output)
 
         else:
@@ -254,24 +250,49 @@ class getTicket(BaseHandler):
 class GetTicket(BaseHandler):
     def get(self,*args):
         if self.check_auth(args[0],args[1]):
-            user = self.db.get("SELECT * from user where username = %s and password = %s", args[0],args[1])
-            output = {'API' : user.apitoken,
-                      'Command' : 'Balance',
-                'Username' : user.username,
-                      'Balance' : user.balance}
+            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+            tickets = self.db.get("SELECT * from tickets where userid = %s",user.id)
+            No = "There Are -"len(tickets)"- Ticket"
+            output = {
+                        "tickets": No,
+                        "code": "200"
+                    }
+            for i in range(len(tickets)):
+                output.update({
+                            "block "+i:{
+                                "subject" : tickets[i].subject,
+                                "body" : tickets[i].body,
+                                "status" : tickets[i].status,
+                                "id" : tickets[i].id,
+                                "date" : tickets[i].date
+                            }
+                            })
+
             self.write(output)
         else :
             output = {'status':'Wrong Authentication'}
             self.write(output)
     def post(self, *args, **kwargs):
-        username = self.get_argument('username')
-        password = self.get_argument('password')
+        token = self.get_argument('token')
         if self.check_auth(username,password):
-            user = self.db.get("SELECT * from user where username = %s and password = %s", username,password)
-            output = {'API' : user.apitoken,
-                      'Command' : 'Balance',
-                'Username' : user.username,
-                      'Balance' : user.balance}
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
+            tickets = self.db.get("SELECT * from tickets where userid = %s",user.id)
+            No = "There Are -"len(tickets)"- Ticket"
+            output = {
+                        "tickets": No,
+                        "code": "200"
+                    }
+            for i in range(len(tickets)):
+                output.update({
+                            "block "+i:{
+                                "subject" : tickets[i].subject,
+                                "body" : tickets[i].body,
+                                "status" : tickets[i].status,
+                                "id" : tickets[i].id,
+                                "date" : tickets[i].date
+                            }
+                            })
+
             self.write(output)
         else :
             output = {'status': 'Wrong Authentication'}
