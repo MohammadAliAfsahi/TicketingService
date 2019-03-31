@@ -12,15 +12,6 @@ PORT = "1104"
 def __postcr__():
     return "http://"+HOST+":"+PORT+"/"+CMD+"?"
 
-
-def print_bal(r):
-    print("YOUR BALANCE IS : " + str(r['Balance']))
-
-
-def print_depwith(r):
-    print("YOUR OLD BALANCE IS : " + str(r['Old Balance'])
-          +"\n"+"YOUR NEW BALANCE IS : "+str(r['New Balance']))
-
 def clear():
     if platform.system() == 'Windows':
         os.system('cls')
@@ -52,138 +43,179 @@ while True:
     status = sys.stdin.readline()
     if status[:-1] == '1':
         clear()
-        print("""What Kind Of Login Do You Prefer :
-            1. TOKEN
-            2. USERNAME | PASSWORD
+        print("""Enter :
+        USERNAME | PASSWORD
             """)
-        login_type = sys.stdin.readline()
-        if login_type[:-1] == '1':
-            clear()
+        time.sleep(3)
+        clear()
+        while True:
+            print("USERNAME : ")
             while True:
-                print("API : ")
-                API = sys.stdin.readline()[:-1]
-                CMD = "login"
-                PARAMS = {'api':API}
-                r=requests.post(__postcr__(),params=PARAMS).json()
-                if r['status'] == 'TRUE':
-                    clear()
-                    print("API IS CORRECT\nLogging You in ...")
-                    USERNAME = r['username']
-                    time.sleep(2)
+                USERNAME = sys.stdin.readline()[:-1]
+                if not USERNAME == "":
                     break
-                else:
-                    clear()
-                    print("API IS INCORRECT\nTRY AGAIN ...")
-                    time.sleep(2)
+            print("PASSWORD : ")
             while True:
+                PASSWORD = sys.stdin.readline()[:-1]
+                if not PASSWORD == "":
+                    break
+            CMD = "login"
+            PARAMS = {'username':USERNAME,'password':PASSWORD}
+            r = requests.post(__postcr__(),PARAMS).json()
+            if r['code'] == '200':
                 clear()
-                show_func()
-                func_type = sys.stdin.readline()
-                if func_type[:-1] == '1':
-                    clear()
-                    CMD = "apibalance"
-                    PARAMS = {'api': API}
-                    data = requests.post(__postcr__(),PARAMS).json()
-                    print_bal(data)
-                    input("Press Any Key To Continue ...")
-                if func_type[:-1] == '2':
-                    clear()
-                    CMD = "apideposit"
-                    print("Enter Your Amount : ")
-                    amount = sys.stdin.readline()[:-1]
-                    PARAMS = {'api': API,'amount':amount}
-                    data = requests.post(__postcr__(),PARAMS).json()
-                    print_depwith(data)
-                    input("Press Any Key To Continue ...")
-                if func_type[:-1] == '3':
-                    clear()
-                    print("Enter Your Amount : ")
-                    amount = sys.stdin.readline()[:-1]
-                    CMD = "apibalance"
-                    PARAMS = {'api': API}
-                    data = requests.post(__postcr__(),PARAMS).json()
-                    if int(amount) > int(data['Balance']):
-                        print("Insufficient Balance")
-                        input("Press Any Key To Continue ...")
-                    else:
-                        CMD = "apiwithdraw"
-                        PARAMS = {'api': API, 'amount': amount}
-                        data = requests.post(__postcr__(),PARAMS).json()
-                        print_depwith(data)
-                        input("Press Any Key To Continue ...")
-                if func_type[:-1] == '4':
-                    break
-                if func_type[:-1] == '5':
-                    sys.exit()
-
-        elif login_type[:-1] == '2':
+                TOKEN = r['token']
+                print("USERNAME AND PASSWORD IS CORRECT\nLogging You in ...")
+                print("Your token is : ",TOKEN)
+                time.sleep(2)
+                break
+            else:
+                clear()
+                print("USERNAME AND PASSWORD IS INCORRECT\nTRY AGAIN ...")
+                time.sleep(2)
+        while True:
             clear()
-            while True:
-                print("USERNAME : ")
+            show_func()
+            func_type = sys.stdin.readline()
+            if func_type[:-1] == '1':
+                MESSAGE = ""
+                SUBJECT = ""
+                clear()
+                CMD = "sendticket"
+                print("Enter Your message subject:")
                 while True:
-                    USERNAME = sys.stdin.readline()[:-1]
-                    if not USERNAME == "":
+                    SUBJECT = sys.stdin.readline()[:-1]
+                    if not SUBJECT == "":
                         break
-                print("PASSWORD : ")
+                print("Enter your message:")
                 while True:
-                    PASSWORD = sys.stdin.readline()[:-1]
-                    if not PASSWORD == "":
+                    MESSAGE = sys.stdin.readline()[:-1]
+                    if not MESSAGE == "":
                         break
-                CMD = "login"
+
+                PARAMS = {'token':TOKEN,'subject':SUBJECT,'body':MESSAGE}
+                data = requests.post(__postcr__(),PARAMS).json()
+                if data['code'] == "200":
+                    print(data['message']+"\n")
+                    print("Ticket ID: "+str(data['id']))
+                else :
+                    print("Something went wrong!")
+                input("Press Any Key To Continue ...")
+            if func_type[:-1] == '2':
+                clear()
+                CMD = "getticketcli"
+                PARAMS = {'token': TOKEN}
+                data = requests.post(__postcr__(),PARAMS).json()
+                if data['code'] == "200":
+                    for i in range(len(data)-2):
+                        print("Subject : "+data['block '+str(i)]['subject']+"")
+                        print("Message : "+data['block '+str(i)]['body']+"")
+                        print("Status  : "+data['block '+str(i)]['status']+"")
+                        print("date    : "+data['block '+str(i)]['date']+"")
+                        print("ID      : "+str(data['block '+str(i)]['id']))
+                        print("+---------------------------------------------+")  
+                else:
+                    print(data['status'])
+                input("Press Any Key To Continue ...")
+            if func_type[:-1] == '3':
+                clear()
+                CMD = "closeticket"
+                print("Enter Ticket's ID:")
+                ID = ""
+                while True:
+                    ID = sys.stdin.readline()[:-1]
+                    if not ID == "":
+                        break
+                PARAMS = {'token': TOKEN, 'id': ID}
+                data = requests.post(__postcr__(),PARAMS).json()
+                if data['code'] == "200":
+                    print(data['message'])
+                else:
+                    print(data)
+                input("Press Any Key To Continue ...")
+            if func_type[:-1] == '4':
+                CMD = "getticketmod"
+                PARAMS = {'token': TOKEN}
+                data = requests.post(__postcr__(),PARAMS).json()
+                if data['code'] == "200":
+                    for i in range(len(data)-2):
+                        print("Subject : "+data['block '+str(i)]['subject']+"")
+                        print("Message : "+data['block '+str(i)]['body']+"")
+                        print("Status  : "+data['block '+str(i)]['status']+"")
+                        print("date    : "+data['block '+str(i)]['date']+"")
+                        print("ID      : "+str(data['block '+str(i)]['id']))
+                        #print("Response: "+str(data['block '+str(i)]['response']))
+                        print("+---------------------------------------------+")
+                else:
+                    print(data['status'])
+                input("Press Any Key To Continue ...")
+            if func_type[:-1] == '5':
+                CMD = "restoticketmod"
+                ID = ""
+                print("Enter Ticket's ID:")
+                while True:
+                    ID = sys.stdin.readline()[:-1]
+                    if not ID == "":
+                        break
+                print("Enter your message:")
+                MESSAGE = ""
+                while True:
+                    MESSAGE = sys.stdin.readline()[:-1]
+                    if not MESSAGE == "":
+                        break
+
+                PARAMS = {'token':TOKEN,'id':ID,'body':MESSAGE}
+                data = requests.post(__postcr__(),PARAMS).json()
+                if data['code'] == "200":
+                    print(data['message'])
+                else:
+                    print(data['status'])
+                input("Press Any Key To Continue ...")
+            if func_type[:-1] == '6':
+                CMD = "changestatus"
+                ID = ""
+                print("Enter Ticket's ID:")
+                while True:
+                    ID = sys.stdin.readline()[:-1]
+                    if not ID == "":
+                        break
+                print("""Choose One of the Status:\n\t1. Open\n\t2. Close\n\t3. In Progress""")
+                STATUS = 0
+                while True:
+                    STATUS = sys.stdin.readline()[:-1]
+                    if not STATUS == "":
+                        if STATUS == "1":
+                            STATUS = "Open"
+                        if STATUS == "2":
+                            STATUS = "Close"
+                        if STATUS == "3":
+                            STATUS = "in progress" 
+                        break
+
+                PARAMS = {'token':TOKEN,'id':ID,'status':STATUS}
+                data = requests.post(__postcr__(),PARAMS).json()
+                if data['code'] == "200":
+                    print(data['message'])
+                else:
+                    print(data['status'])
+                input("Press Any Key To Continue ...")
+                pass
+            if func_type[:-1] == '7':
+                CMD = "logout"
                 PARAMS = {'username':USERNAME,'password':PASSWORD}
                 r = requests.post(__postcr__(),PARAMS).json()
                 if r['code'] == '200':
                     clear()
-                    TOKEN = r['token']
-                    print("USERNAME AND PASSWORD IS CORRECT\nLogging You in ...")
-                    print("Your token is %s",TOKEN)
+                    print("USERNAME AND PASSWORD IS CORRECT\nLogging You out ...")
+                    print(r['message'])
                     time.sleep(2)
                     break
                 else:
                     clear()
                     print("USERNAME AND PASSWORD IS INCORRECT\nTRY AGAIN ...")
                     time.sleep(2)
-            while True:
-                clear()
-                show_func()
-                func_type = sys.stdin.readline()
-                if func_type[:-1] == '1':
-                    clear()
-                    CMD = "sendticket"
-                    PARAMS = {'username':USERNAME,'password':PASSWORD}
-                    data = requests.post(__postcr__(),PARAMS).json()
-                    print_bal(data)
-                    input("Press Any Key To Continue ...")
-                if func_type[:-1] == '2':
-                    clear()
-                    CMD = "getticketcli"
-                    print("Enter Your Amount : ")
-                    amount = sys.stdin.readline()[:-1]
-                    PARAMS = {'username': USERNAME, 'password': PASSWORD,'amount':amount}
-                    data = requests.post(__postcr__(),PARAMS).json()
-                    print_depwith(data)
-                    input("Press Any Key To Continue ...")
-                if func_type[:-1] == '3':
-                    clear()
-                    print("Enter Your Amount : ")
-                    amount = sys.stdin.readline()[:-1]
-                    CMD = "closeticket"
-                    PARAMS = {'username': USERNAME, 'password': PASSWORD}
-                    data = requests.post(__postcr__(),PARAMS).json()
-                    if(int(amount) > data['Balance']):
-                        print("Insufficient Balance")
-                        input("Press Any Key To Continue ...")
-                    else:
-                        CMD = "authwithdraw"
-                        PARAMS = {'username': USERNAME, 'password': PASSWORD, 'amount': amount}
-                        data = requests.post(__postcr__(),PARAMS).json()
-                        print_depwith(data)
-                        input("Press Any Key To Continue ...")
-                if func_type[:-1] == '7':
-                    "logout"
-                    pass
-                if func_type[:-1] == '8':
-                    sys.exit()
+            if func_type[:-1] == '8':
+                sys.exit()
 
     elif status[:-1] == '2':
         clear()

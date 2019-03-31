@@ -221,7 +221,7 @@ class sendticket(BaseHandler):
             self.write(output)
 
         else:
-            output = {'status': 'Wrong Authentication'}
+            output = {'code': '400'}
             self.write(output)
 
 class closeticket(BaseHandler):
@@ -277,7 +277,7 @@ class getticketcli(BaseHandler):
 
             self.write(output)
         else :
-            output = {'status':'Wrong Authentication'}
+            output = {'status':'Wrong Authentication','code':"400"}
             self.write(output)
     def post(self, *args, **kwargs):
         token = self.get_argument('token')
@@ -302,7 +302,7 @@ class getticketcli(BaseHandler):
 
             self.write(output)
         else :
-            output = {'status': 'Wrong Authentication'}
+            output = {'status': 'Wrong Authentication','code':"400"}
             self.write(output)
 
 
@@ -330,7 +330,7 @@ class getticketmod(BaseHandler):
 
                 self.write(output)
             else:
-                self.write("You don't have permission for this section")
+                self.write({'status':"You don't have permission for this section"})
         else :
             output = {'status':'Wrong Authentication'}
             self.write(output)
@@ -359,9 +359,9 @@ class getticketmod(BaseHandler):
 
                 self.write(output)
             else:
-                self.write("You don't have permission for this section")
+                self.write({'status':"You don't have permission for this section",'code':"400"})
         else :
-            output = {'status': 'Wrong Authentication'}
+            output = {'status': 'Wrong Authentication','code':"400"}
             self.write(output)
 
 class changestatus(BaseHandler):
@@ -413,7 +413,7 @@ class restoticketmod(BaseHandler):
                         }
                 self.write(output)
             else:
-                self.write("You don't have permission for this section")
+                self.write({'status':"You don't have permission for this section"})
         else :
             output = {'status':'Wrong Authentication'}
             self.write(output)
@@ -432,7 +432,7 @@ class restoticketmod(BaseHandler):
                         }
                 self.write(output)
             else:
-                self.write("You don't have permission for this section")
+                self.write({'status':"You don't have permission for this section"})
         else :
             output = {'status':'Wrong Authentication'}
             self.write(output)
