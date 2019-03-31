@@ -24,9 +24,9 @@ class Application(tornado.web.Application):
             (r"/closeticket/([^/]+)", closeticket), #Balance Using API Format : /closeticket/API
             (r"/getticketcli/([^/]+)/([^/]+)", getticketcli),  # Balance Using Authentication Format : /getticketcli/Username/Password
             (r"/getticketmod/([^/]+)/([^/]+)", getticketmod),  # deposit Using API Format : /getticketmod/API/Amount
-            (r"/ChangeStatus/([^/]+)/([^/]+)/([^/]+)", ChangeStatus),  # deposit Using Authentication Format : /ChangeStatus/Username/Password/Amount
-            (r"/apiwithdraw/([^/]+)/([^/]+)", apiwithdraw), # Withdraw Using API Format : /apiwithdraw/API/amount
-            (r"/sendticket/([^/]+)/([^/]+)/([^/]+)", sendticket),   # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
+            (r"/changestatus/([^/]+)/([^/]+)/([^/]+)", changestatus),  # deposit Using Authentication Format : /changestatus/Username/Password/Amount
+            (r"/restoticketmod/([^/]+)/([^/]+)", restoticketmod), # Withdraw Using API Format : /restoticketmod/API/amount
+            (r"/sendticket/([^/]+)/([^/]+)/([^/]+)", sendticket),   # Withdeaw using  AuthenticationFormat : /restoticketmod/username/password/amount
             (r"/login/([^/]+)/([^/]+)", login),
             (r"/logout/([^/]+)/([^/]+)", logout),
             # POST METHOD :
@@ -34,11 +34,11 @@ class Application(tornado.web.Application):
             (r"/closeticket", closeticket),  # Balance Using API Format : /closeticket/API
             (r"/getticketcli", getticketcli),# Balance Using Authentication Format : /getticketcli/Username/Password
             (r"/getticketmod", getticketmod),  # deposit Using API Format : /getticketmod/API/Amount
-            (r"/ChangeStatus", ChangeStatus), # deposit Using Authentication Format : /ChangeStatus/Username/Password/Amount
-            (r"/apiwithdraw", apiwithdraw),# Withdeaw Using API Format : /apiwithdraw/API/amount
+            (r"/changestatus", changestatus), # deposit Using Authentication Format : /changestatus/Username/Password/Amount
+            (r"/restoticketmod", restoticketmod),# Withdeaw Using API Format : /restoticketmod/API/amount
             (r"/login", login),
             (r"/logout", logout),
-            (r"/sendticket", sendticket), # Withdeaw using  AuthenticationFormat : /apiwithdraw/username/password/amount
+            (r"/sendticket", sendticket), # Withdeaw using  AuthenticationFormat : /restoticketmod/username/password/amount
             (r".*", defaulthandler),
         ]
         settings = dict()
@@ -307,37 +307,62 @@ class getticketcli(BaseHandler):
 class getticketmod(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
-            user_old = self.db.get("SELECT * from user where apitoken = %s", args[0])
-            self.db.execute("UPDATE user set balance = balance + %s where apitoken = %s",int(args[1]),args[0])
-            user_new = self.db.get("SELECT * from user where apitoken = %s", args[0])
-            output = {'API': user_new.api,
-                      'Command' : 'Deposit',
-                      'Username': user_new.username,
-                      'Old Balance' : user_old.balance,
-                      'New Balance': user_new.balance}
-            self.write(output)
-        else:
-            output = {'status': 'Wrong API'}
-            self.write(output)
+            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+            if user.admin == True:
+                tickets = self.db.query("SELECT * from tickets")
+                No = "There Are -"+str(len(tickets))+"- Ticket"
+                output = {
+                            "tickets": No,
+                            "code": "200"
+                        }
+                for i in range(len(tickets)):
+                    block = {
+                                "subject" : tickets[i]['subject'],
+                                "body" : tickets[i]['body'],
+                                "status" : tickets[i]['status'],
+                                "id" : tickets[i]['id'],
+                                "date" : str(tickets[i]["date"])
+                            }
+                    string = "block "+str(i)
+                    output.update({string:block})
 
+                self.write(output)
+            else:
+                self.write("You don't have permission for this section")
+        else :
+            output = {'status':'Wrong Authentication'}
+            self.write(output)
+    
     def post(self, *args, **kwargs):
-        api_token = self.get_argument('api')
-        amount = self.get_argument('amount')
-        if self.check_api(api_token):
-            user_old = self.db.get("SELECT * from user where apitoken = %s", api_token)
-            self.db.execute("UPDATE user set balance = balance + %s where apitoken = %s",int(amount),api_token)
-            user_new = self.db.get("SELECT * from user where apitoken = %s", api_token)
-            output = {'API': user_new.api,
-                      'Command' : 'Deposit',
-                      'Username': user_new.username,
-                      'Old Balance' : user_old.balance,
-                      'New Balance': user_new.balance}
-            self.write(output)
-        else:
-            output = {'status': 'Wrong API'}
+        token = self.get_argument('token')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
+            if user.admin == True:
+                tickets = self.db.query("SELECT * from tickets")
+                No = "There Are -"+str(len(tickets))+"- Ticket"
+                output = {
+                            "tickets": No,
+                            "code": "200"
+                        }
+                for i in range(len(tickets)):
+                    block = {
+                                "subject" : tickets[i]['subject'],
+                                "body" : tickets[i]['body'],
+                                "status" : tickets[i]['status'],
+                                "id" : tickets[i]['id'],
+                                "date" : str(tickets[i]["date"])
+                            }
+                    string = "block "+str(i)
+                    output.update({string:block})
+
+                self.write(output)
+            else:
+                self.write("You don't have permission for this section")
+        else :
+            output = {'status': 'Wrong Authentication'}
             self.write(output)
 
-class ChangeStatus(BaseHandler):
+class changestatus(BaseHandler):
     def get(self, *args):
         if self.check_auth(args[0],args[1]):
             user_old = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
@@ -371,7 +396,7 @@ class ChangeStatus(BaseHandler):
             output = {'status': 'Wrong Authentication'}
             self.write(output)
 
-class apiwithdraw(BaseHandler):
+class restoticketmod(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
             user_old = self.db.get("SELECT * from user where apitoken = %s", args[0])
