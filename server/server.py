@@ -86,7 +86,7 @@ class signup(BaseHandler):
         if not self.check_user(args[0]):
             api_token = str(hexlify(os.urandom(16)))
             user_id = self.db.execute("INSERT INTO user (username, password, firstname ,lastname,apitoken,admin) "
-                                     "values (%s,%s,%s,%s,%s) "
+                                     "values (%s,%s,%s,%s,%s,%s) "
                                      , args[0],args[1],args[2],args[3],api_token,False)
 
             output = {
@@ -103,10 +103,11 @@ class signup(BaseHandler):
         password = self.get_argument('password')
         firstname = self.get_argument('firstname')
         lastname = self.get_argument('lastname')
+        print type(username) ,type(password) ,type(firstname), type(lastname)
         if not self.check_user(username):
             api_token = str(hexlify(os.urandom(16)))
-            user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken,admin) "
-                                     "values (%s,%s,%s,%s,%s) "
+            user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken, admin) "
+                                     "values (%s,%s,%s,%s,%s,%s)"
                                      , username,password,firstname,lastname,api_token,False)
 
             output = {
@@ -115,7 +116,7 @@ class signup(BaseHandler):
                     }
             self.write(output)
         else:
-            output = {'status': 'User Exist'}
+            output = {'code': '201', 'status':"User Exist"}
             self.write(output)
 
 class login(BaseHandler):

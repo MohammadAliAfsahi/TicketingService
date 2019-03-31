@@ -31,18 +31,21 @@ def clear():
 def show_func():
     print("USERNAME : "+USERNAME+"\n"+"API : " + API)
     print("""What Do You Prefer To Do :
-    1. Balance
-    2. Deposit
-    3. Withdraw
-    4. Logout
-    5. Exit
+    1. Send Ticket
+    2. Get Ticket
+    3. Close Ticket
+    4. Get ticket(Needs Admin privileges)
+    5. Response to Ticket(Needs Admin privileges)
+    6. Change Status of tickets(Needs Admin privileges)
+    7. logout
+    8. Exit
     """)
 
 while True:
     clear()
-    print("""WELCOME TO BANK CLIENT
+    print("""WELCOME
     Please Choose What You Want To Do :
-    1. signin
+    1. login
     2. signup
     3. exit
     """)
@@ -59,7 +62,7 @@ while True:
             while True:
                 print("API : ")
                 API = sys.stdin.readline()[:-1]
-                CMD = "apicheck"
+                CMD = "login"
                 PARAMS = {'api':API}
                 r=requests.post(__postcr__(),params=PARAMS).json()
                 if r['status'] == 'TRUE':
@@ -120,7 +123,7 @@ while True:
                 USERNAME = sys.stdin.readline()[:-1]
                 print("PASSWORD : ")
                 PASSWORD = sys.stdin.readline()[:-1]
-                CMD = "authcheck"
+                CMD = "login"
                 PARAMS = {'username':USERNAME,'password':PASSWORD}
                 r = requests.post(__postcr__(),PARAMS).json()
                 if r['status'] == 'TRUE':
@@ -139,14 +142,14 @@ while True:
                 func_type = sys.stdin.readline()
                 if func_type[:-1] == '1':
                     clear()
-                    CMD = "authbalance"
+                    CMD = "sendticket"
                     PARAMS = {'username':USERNAME,'password':PASSWORD}
                     data = requests.post(__postcr__(),PARAMS).json()
                     print_bal(data)
                     input("Press Any Key To Continue ...")
                 if func_type[:-1] == '2':
                     clear()
-                    CMD = "authdeposit"
+                    CMD = "getticketcli"
                     print("Enter Your Amount : ")
                     amount = sys.stdin.readline()[:-1]
                     PARAMS = {'username': USERNAME, 'password': PASSWORD,'amount':amount}
@@ -155,10 +158,9 @@ while True:
                     input("Press Any Key To Continue ...")
                 if func_type[:-1] == '3':
                     clear()
-
                     print("Enter Your Amount : ")
                     amount = sys.stdin.readline()[:-1]
-                    CMD = "authbalance"
+                    CMD = "closeticket"
                     PARAMS = {'username': USERNAME, 'password': PASSWORD}
                     data = requests.post(__postcr__(),PARAMS).json()
                     if(int(amount) > data['Balance']):
@@ -180,15 +182,25 @@ while True:
         while True:
             print("To Create New Account Enter The Authentication")
             print("USERNAME : ")
-            USERNAME = sys.stdin.readline()[:-1]
+            while True:
+                USERNAME = sys.stdin.readline()[:-1]
+                if not USERNAME == "":
+                    break
             print("PASSWORD : ")
-            PASSWORD = sys.stdin.readline()[:-1]
+            while True:
+                PASSWORD = sys.stdin.readline()[:-1]
+                if not PASSWORD == "":
+                    break
+            print("FIRST NAME:")
+            FIRSTNAME = sys.stdin.readline()[:-1]
+            print("LAST NAME:")
+            LASTNAME = sys.stdin.readline()[:-1]
             CMD = "signup"
             clear()
-            PARAMS={'username':USERNAME,'password':PASSWORD}
+            PARAMS={'username':USERNAME,'password':PASSWORD,'firstname':FIRSTNAME,'lastname':LASTNAME}
             r = requests.post(__postcr__(),PARAMS).json()
-            if str(r['status']) == "OK":
-                print("Your Acount Is Created\n"+"Your Username :"+USERNAME+"\nYour API : "+r['api'])
+            if str(r['code']) == "200":
+                print("Your Acount Is Created\n"+"Your Username :"+USERNAME+"\n")
                 input("Press Any Key To Continue ...")
                 break
             else :
