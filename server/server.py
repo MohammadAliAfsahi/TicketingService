@@ -399,42 +399,39 @@ class changestatus(BaseHandler):
 class restoticketmod(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
-            user_old = self.db.get("SELECT * from user where apitoken = %s", args[0])
-            if int(args[1]) > user_old.balance :
-                print(args[1],user_old.balance)
-                output = {'status': 'Insufficient Balance'}
+            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+            if user.admin == True:
+                tickets = self.db.execute("UPDATE tickets set response=%s where id = %s", args[2], args[1])
+                output = {
+                            "message": "Response to Ticket With id -"+str(args[1])+"- Sent Successfully",
+                            "code": "200"
+                        }
                 self.write(output)
-                return
-
-            self.db.execute("UPDATE user set balance = balance - %s where apitoken = %s",int(args[1]),args[0])
-            user_new = self.db.get("SELECT * from user where apitoken = %s", args[0])
-            output = {'API': user_new.api,
-                      'Command' : 'Withdraw',
-                      'Username': user_new.username,
-                      'Old Balance' : user_old.balance,
-                      'New Balance': user_new.balance}
+            else:
+                self.write("You don't have permission for this section")
+        else :
+            output = {'status':'Wrong Authentication'}
             self.write(output)
-        else:
-            output = {'status': 'Wrong API'}
-            self.write(output)
-
-
+        
     def post(self, *args, **kwargs):
-        api_token = self.get_argument('api')
-        amount = self.get_argument('amount')
-        if self.check_api(api_token):
-            user_old = self.db.get("SELECT * from user where apitoken = %s", api_token)
-            self.db.execute("UPDATE user set balance = balance - %s where apitoken = %s",int(amount),api_token)
-            user_new = self.db.get("SELECT * from user where apitoken = %s", api_token)
-            output = {'API': user_new.api,
-                      'Command' : 'Withdraw',
-                      'Username': user_new.username,
-                      'Old Balance' : user_old.balance,
-                      'New Balance': user_new.balance}
+        token = self.get_argument('token')
+        id_ticket = self.get_argument('id')
+        body = self.get_argument('body')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
+            if user.admin == True:
+                tickets = self.db.execute("UPDATE tickets set response=%s where id = %s", body, id_ticket)
+                output = {
+                            "message": "Response to Ticket With id -"+str(id_ticket)+"- Sent Successfully",
+                            "code": "200"
+                        }
+                self.write(output)
+            else:
+                self.write("You don't have permission for this section")
+        else :
+            output = {'status':'Wrong Authentication'}
             self.write(output)
-        else:
-            output = {'status': 'Wrong API'}
-            self.write(output)
+
 
 class help(BaseHandler):
     def get(self, *args, **kwargs):
