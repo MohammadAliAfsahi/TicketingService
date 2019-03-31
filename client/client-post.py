@@ -4,7 +4,7 @@ import time
 import platform
 import sys
 
-PARAMS = CMD = USERNAME = PASSWORD = API = ""
+PARAMS = CMD = USERNAME = PASSWORD = TOKEN = ""
 HOST = "localhost"
 PORT = "1104"
 
@@ -29,7 +29,7 @@ def clear():
 
 
 def show_func():
-    print("USERNAME : "+USERNAME+"\n"+"API : " + API)
+    print("USERNAME : "+USERNAME+"\n"+"TOKEN : " + TOKEN)
     print("""What Do You Prefer To Do :
     1. Send Ticket
     2. Get Ticket
@@ -53,7 +53,7 @@ while True:
     if status[:-1] == '1':
         clear()
         print("""What Kind Of Login Do You Prefer :
-            1. API
+            1. TOKEN
             2. USERNAME | PASSWORD
             """)
         login_type = sys.stdin.readline()
@@ -120,16 +120,23 @@ while True:
             clear()
             while True:
                 print("USERNAME : ")
-                USERNAME = sys.stdin.readline()[:-1]
+                while True:
+                    USERNAME = sys.stdin.readline()[:-1]
+                    if not USERNAME == "":
+                        break
                 print("PASSWORD : ")
-                PASSWORD = sys.stdin.readline()[:-1]
+                while True:
+                    PASSWORD = sys.stdin.readline()[:-1]
+                    if not PASSWORD == "":
+                        break
                 CMD = "login"
                 PARAMS = {'username':USERNAME,'password':PASSWORD}
                 r = requests.post(__postcr__(),PARAMS).json()
-                if r['status'] == 'TRUE':
+                if r['code'] == '200':
                     clear()
+                    TOKEN = r['token']
                     print("USERNAME AND PASSWORD IS CORRECT\nLogging You in ...")
-                    API = r['api']
+                    print("Your token is %s",TOKEN)
                     time.sleep(2)
                     break
                 else:
@@ -172,9 +179,10 @@ while True:
                         data = requests.post(__postcr__(),PARAMS).json()
                         print_depwith(data)
                         input("Press Any Key To Continue ...")
-                if func_type[:-1] == '4':
-                    break
-                if func_type[:-1] == '5':
+                if func_type[:-1] == '7':
+                    "logout"
+                    pass
+                if func_type[:-1] == '8':
                     sys.exit()
 
     elif status[:-1] == '2':

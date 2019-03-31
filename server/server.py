@@ -149,7 +149,8 @@ class login(BaseHandler):
                     }
             self.write(output)
         else:
-            output = {'status': 'FALSE'}
+            output = {'status': 'FALSE',
+                       'code':"201" }
             self.write(output)
 
 class logout(BaseHandler):
