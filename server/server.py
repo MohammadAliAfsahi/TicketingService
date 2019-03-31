@@ -363,45 +363,48 @@ class getticketmod(BaseHandler):
             self.write(output)
 
 class changestatus(BaseHandler):
-    def get(self, *args):
-        if self.check_auth(args[0],args[1]):
-            user_old = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
-            self.db.execute("UPDATE user set balance = balance + %s where username=%s and password = %s", int(args[2]), args[0],args[1])
-            user_new = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
-            output = {'API': user_new.api,
-                      'Command': 'Deposit',
-                      'Username': user_new.username,
-                      'Old Balance': user_old.balance,
-                      'New Balance': user_new.balance}
+    def get(self,*args):
+        if self.check_api(args[0]):
+            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+            if user.admin == True:
+                self.db.execute("UPDATE tickets set status=%s where id = %s", args[2], args[1])
+                output = {
+                            "message": "Status Ticket With id -"+str(args[1])+"- Changed Successfully",
+                            "code": "200"
+                        }
+                self.write(output)
+            else:
+                self.write("You don't have permission for this section")
+        else :
+            output = {'status':'Wrong Authentication'}
             self.write(output)
-        else:
-            output = {'status': 'Wrong Authentication'}
+        
+    def post(self, *args, **kwargs):
+        token = self.get_argument('token')
+        id_ticket = self.get_argument('id')
+        status = self.get_argument('status')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
+            if user.admin == True:
+                self.db.execute("UPDATE tickets set status=%s where id = %s", status, id_ticket)
+                output = {
+                            "message": "Status Ticket With id -"+str(id_ticket)+"- Changed Successfully",
+                            "code": "200"
+                        }
+                self.write(output)
+            else:
+                self.write("You don't have permission for this section")
+        else :
+            output = {'status':'Wrong Authentication'}
             self.write(output)
 
-    def post(self, *args, **kwargs):
-        username = self.get_argument('username')
-        password = self.get_argument('password')
-        amount = self.get_argument('amount')
-        if self.check_auth(username,password):
-            user_old = self.db.get("SELECT * from user where username = %s and password = %s", username,password)
-            self.db.execute("UPDATE user set balance = balance + %s where username=%s and password = %s", int(amount), username,password)
-            user_new = self.db.get("SELECT * from user where username = %s and password = %s", username,password)
-            output = {'API': user_new.api,
-                      'Command': 'Deposit',
-                      'Username': user_new.username,
-                      'Old Balance': user_old.balance,
-                      'New Balance': user_new.balance}
-            self.write(output)
-        else:
-            output = {'status': 'Wrong Authentication'}
-            self.write(output)
 
 class restoticketmod(BaseHandler):
     def get(self,*args):
         if self.check_api(args[0]):
             user = self.db.get("SELECT * from user where apitoken = %s", args[0])
             if user.admin == True:
-                tickets = self.db.execute("UPDATE tickets set response=%s where id = %s", args[2], args[1])
+                self.db.execute("UPDATE tickets set response=%s where id = %s", args[2], args[1])
                 output = {
                             "message": "Response to Ticket With id -"+str(args[1])+"- Sent Successfully",
                             "code": "200"
@@ -420,7 +423,7 @@ class restoticketmod(BaseHandler):
         if self.check_api(token):
             user = self.db.get("SELECT * from user where apitoken = %s", token)
             if user.admin == True:
-                tickets = self.db.execute("UPDATE tickets set response=%s where id = %s", body, id_ticket)
+                self.db.execute("UPDATE tickets set response=%s where id = %s", body, id_ticket)
                 output = {
                             "message": "Response to Ticket With id -"+str(id_ticket)+"- Sent Successfully",
                             "code": "200"
