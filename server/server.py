@@ -19,16 +19,6 @@ define("mysql_password", default="", help="blog database password")
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            #GET METHOD :
-            (r"/signup/([^/]+)/([^/]+)/([^/]+)/([^/]+)", signup),
-            (r"/closeticket/([^/]+)", closeticket), #Balance Using API Format : /closeticket/API
-            (r"/getticketcli/([^/]+)/([^/]+)", getticketcli),  # Balance Using Authentication Format : /getticketcli/Username/Password
-            (r"/getticketmod/([^/]+)/([^/]+)", getticketmod),  # deposit Using API Format : /getticketmod/API/Amount
-            (r"/changestatus/([^/]+)/([^/]+)/([^/]+)", changestatus),  # deposit Using Authentication Format : /changestatus/Username/Password/Amount
-            (r"/restoticketmod/([^/]+)/([^/]+)", restoticketmod), # Withdraw Using API Format : /restoticketmod/API/amount
-            (r"/sendticket/([^/]+)/([^/]+)/([^/]+)", sendticket),   # Withdeaw using  AuthenticationFormat : /restoticketmod/username/password/amount
-            (r"/login/([^/]+)/([^/]+)", login),
-            (r"/logout/([^/]+)/([^/]+)", logout),
             # POST METHOD :
             (r"/signup", signup),
             (r"/closeticket", closeticket),  # Balance Using API Format : /closeticket/API
@@ -388,9 +378,9 @@ class changestatus(BaseHandler):
                         }
                 self.write(output)
             else:
-                self.write("You don't have permission for this section")
+                self.write({'status':"You don't have permission for this section",'code':"201"})
         else :
-            output = {'status':'Wrong Authentication'}
+            output = {'status':'Wrong Authentication','code':"201"}
             self.write(output)
         
     def post(self, *args, **kwargs):
@@ -407,7 +397,7 @@ class changestatus(BaseHandler):
                         }
                 self.write(output)
             else:
-                self.write("You don't have permission for this section")
+                self.write({'status':"You don't have permission for this section",'code':"201"})
         else :
             output = {'status':'Wrong Authentication','code':"201"}
             self.write(output)
