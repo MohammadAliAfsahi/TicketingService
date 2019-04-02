@@ -69,8 +69,17 @@ This project supports both POST and GET methods.
 
 # Client
 In order to run client code you need request module which is pre-installed in python but if not use following command:
+
 `
 $ pip install requests
+`
+
+`
+$ python client/client-get.py
+`
+or 
+`
+$ python client/client-post.py
 `
 
 # Support:
