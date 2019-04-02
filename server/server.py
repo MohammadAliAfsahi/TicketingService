@@ -20,7 +20,7 @@ class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
             #GET METHOD :
-            (r"/signup/([^/]+)/([^/]+)", signup),
+            (r"/signup/([^/]+)/([^/]+)/([^/]+)/([^/]+)", signup),
             (r"/closeticket/([^/]+)", closeticket), #Balance Using API Format : /closeticket/API
             (r"/getticketcli/([^/]+)/([^/]+)", getticketcli),  # Balance Using Authentication Format : /getticketcli/Username/Password
             (r"/getticketmod/([^/]+)/([^/]+)", getticketmod),  # deposit Using API Format : /getticketmod/API/Amount
@@ -38,7 +38,7 @@ class Application(tornado.web.Application):
             (r"/restoticketmod", restoticketmod),# Withdeaw Using API Format : /restoticketmod/API/amount
             (r"/login", login),
             (r"/logout", logout),
-            (r"/sendticket", sendticket), # Withdeaw using  AuthenticationFormat : /restoticketmod/username/password/amount
+            (r"/sendticket", sendticket), # Withdraw using  AuthenticationFormat : /restoticketmod/username/password/amount
             (r".*", defaulthandler),
         ]
         settings = dict()
@@ -74,20 +74,24 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class defaulthandler(BaseHandler):
     def get(self):
-        output = {'status':'Wrong Command'}
+        output = {'status':'Wrong Command','code':"201"}
         self.write(output)
 
     def post(self, *args, **kwargs):
-        output = {'status':'Wrong Command'}
+        output = {'status':'Wrong Command','code':"201"}
         self.write(output)
 
 class signup(BaseHandler):
     def get(self,*args):
-        if not self.check_user(args[0]):
+        username = self.get_argument('username')
+        password = self.get_argument('password')
+        firstname = self.get_argument('firstname')
+        lastname = self.get_argument('lastname')
+        if not self.check_user(username):
             api_token = str(hexlify(os.urandom(16)))
             user_id = self.db.execute("INSERT INTO user (username, password, firstname ,lastname,apitoken,admin) "
                                      "values (%s,%s,%s,%s,%s,%s) "
-                                     , args[0],args[1],args[2],args[3],api_token,False)
+                                     , username,password,firstname,lastname,api_token,False)
 
             output = {
                         "message": "Signed Up Successfully",
@@ -96,14 +100,13 @@ class signup(BaseHandler):
 
             self.write(output)
         else:
-            output = {'status': 'User Exist'}
+            output = {'status': 'User Exist','code':"201"}
             self.write(output)
     def post(self, *args, **kwargs):
         username = self.get_argument('username')
         password = self.get_argument('password')
         firstname = self.get_argument('firstname')
         lastname = self.get_argument('lastname')
-        print type(username) ,type(password) ,type(firstname), type(lastname)
         if not self.check_user(username):
             api_token = str(hexlify(os.urandom(16)))
             user_id = self.db.execute("INSERT INTO user (username, password, firstname, lastname, apitoken, admin) "
@@ -121,10 +124,12 @@ class signup(BaseHandler):
 
 class login(BaseHandler):
     def get(self, *args, **kwargs):
-        if self.check_auth(args[0],args[1]):
+        username = self.get_argument('username')
+        password = self.get_argument('password')
+        if self.check_auth(username,password):
             api_token = str(hexlify(os.urandom(16)))
-            self.db.execute("UPDATE user set apitoken=%s where username=%s and password = %s",api_token,args[0],args[1])
-            user = self.db.get("SELECT * from user where username = %s and password = %s", args[0], args[1])
+            self.db.execute("UPDATE user set apitoken=%s where username=%s and password = %s",api_token,username,password)
+            user = self.db.get("SELECT * from user where username = %s and password = %s", username, password)
             output = {
                     "message": "Logged in Successfully",
                     "code": "200",
@@ -132,7 +137,7 @@ class login(BaseHandler):
                     }
             self.write(output)
         else:
-            output = {'status': 'FALSE'}
+            output = {'status': 'FALSE','code':"201"}
             self.write(output)
 
     def post(self, *args, **kwargs):
@@ -155,15 +160,17 @@ class login(BaseHandler):
 
 class logout(BaseHandler):
     def get(self, *args, **kwargs):
-        if self.check_auth(args[0],args[1]):
-            self.db.execute("UPDATE user set apitoken=%s where username=%s and password = %s"," ",args[0],args[1])
+        username = self.get_argument('username')
+        password = self.get_argument('password')
+        if self.check_auth(username,password):
+            self.db.execute("UPDATE user set apitoken=%s where username=%s and password = %s"," ",username,password)
             output = {
                         "message": "Logged Out Successfully",
                         "code": "200"
                     }
             self.write(output)
         else:
-            output = {'status': 'FALSE'}
+            output = {'status': 'FALSE','code':"201"}
             self.write(output)
 
     def post(self, *args, **kwargs):
@@ -177,28 +184,26 @@ class logout(BaseHandler):
                         }
             self.write(output)
         else:
-            output = {'status': 'FALSE'}
+            output = {'status': 'FALSE','code':"201"}
             self.write(output)
 
 class sendticket(BaseHandler):
     def get(self, *args,**kwargs):
-        if self.check_auth(args[0],args[1]):
-            user = self.db.get("SELECT * from user where apitoken=%s", args[0])
-           
+        token = self.get_argument('token')
+        subject = self.get_argument('subject')
+        body = self.get_argument('body')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken=%s", token)
             status = "Open"
-
             ticket_id = self.db.execute("INSERT INTO tickets (subject, body, status, userid) "
                                      "values (%s,%s,%s,%s) "
-                                     , args[1],args[2],status,user.id)
+                                     , subject,body,status,user.id)
             output ={
                         "message": "Ticket Sent Successfully",
                         "id": ticket_id,
                         "code": "200"
-                    }
-
-                      
+                    } 
             self.write(output)
-
         else:
             output = {'code': '400'}
             self.write(output)
@@ -226,10 +231,12 @@ class sendticket(BaseHandler):
 
 class closeticket(BaseHandler):
     def get(self,*args):
-        if self.check_api(args[0]):
-            self.db.get("SELECT * from user where apitoken = %s",args[0])
-            self.db.execute("UPDATE tickets set status=%s where id = %s","Close",args[1])
-            message = "Ticket With id -"+str(args[1])+"- Closed Successfully"
+        api_token = self.get_argument('token')
+        id_ticket = self.get_argument('id')
+        if self.check_api(api_token):
+            self.db.get("SELECT * from user where apitoken = %s",api_token)
+            self.db.execute("UPDATE tickets set status=%s where id = %s","Close",id_ticket)
+            message = "Ticket With id -"+str(id_ticket)+"- Closed Successfully"
             output = {
                         "message": message,
                         "code": "200"
@@ -256,8 +263,9 @@ class closeticket(BaseHandler):
 
 class getticketcli(BaseHandler):
     def get(self,*args):
-        if self.check_api(args[0]):
-            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+        token = self.get_argument('token')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
             tickets = self.db.query("SELECT * from tickets where userid = %s",user.id)
             No = "There Are -"+str(len(tickets))+"- Ticket"
             output = {
@@ -308,8 +316,9 @@ class getticketcli(BaseHandler):
 
 class getticketmod(BaseHandler):
     def get(self,*args):
-        if self.check_api(args[0]):
-            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+        token = self.get_argument('token')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
             if user.admin == True:
                 tickets = self.db.query("SELECT * from tickets")
                 No = "There Are -"+str(len(tickets))+"- Ticket"
@@ -330,9 +339,9 @@ class getticketmod(BaseHandler):
 
                 self.write(output)
             else:
-                self.write({'status':"You don't have permission for this section"})
+                self.write({'status':"You don't have permission for this section",'code':"201"})
         else :
-            output = {'status':'Wrong Authentication'}
+            output = {'status':'Wrong Authentication','code':"201"}
             self.write(output)
     
     def post(self, *args, **kwargs):
@@ -366,12 +375,15 @@ class getticketmod(BaseHandler):
 
 class changestatus(BaseHandler):
     def get(self,*args):
-        if self.check_api(args[0]):
-            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+        token = self.get_argument('token')
+        id_ticket = self.get_argument('id')
+        status = self.get_argument('status')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
             if user.admin == True:
-                self.db.execute("UPDATE tickets set status=%s where id = %s", args[2], args[1])
+                self.db.execute("UPDATE tickets set status=%s where id = %s", status,id_ticket)
                 output = {
-                            "message": "Status Ticket With id -"+str(args[1])+"- Changed Successfully",
+                            "message": "Status Ticket With id -"+str(id_ticket)+"- Changed Successfully",
                             "code": "200"
                         }
                 self.write(output)
@@ -397,25 +409,28 @@ class changestatus(BaseHandler):
             else:
                 self.write("You don't have permission for this section")
         else :
-            output = {'status':'Wrong Authentication'}
+            output = {'status':'Wrong Authentication','code':"201"}
             self.write(output)
 
 
 class restoticketmod(BaseHandler):
     def get(self,*args):
-        if self.check_api(args[0]):
-            user = self.db.get("SELECT * from user where apitoken = %s", args[0])
+        token = self.get_argument('token')
+        id_ticket = self.get_argument('id')
+        body = self.get_argument('body')
+        if self.check_api(token):
+            user = self.db.get("SELECT * from user where apitoken = %s", token)
             if user.admin == True:
-                self.db.execute("UPDATE tickets set response=%s where id = %s", args[2], args[1])
+                self.db.execute("UPDATE tickets set response=%s where id = %s", body, id_ticket)
                 output = {
-                            "message": "Response to Ticket With id -"+str(args[1])+"- Sent Successfully",
+                            "message": "Response to Ticket With id -"+str(id_ticket)+"- Sent Successfully",
                             "code": "200"
                         }
                 self.write(output)
             else:
-                self.write({'status':"You don't have permission for this section"})
+                self.write({'status':"You don't have permission for this section",'code':"201"})
         else :
-            output = {'status':'Wrong Authentication'}
+            output = {'status':'Wrong Authentication','code':"201"}
             self.write(output)
         
     def post(self, *args, **kwargs):
@@ -432,9 +447,9 @@ class restoticketmod(BaseHandler):
                         }
                 self.write(output)
             else:
-                self.write({'status':"You don't have permission for this section"})
+                self.write({'status':"You don't have permission for this section",'code':"201"})
         else :
-            output = {'status':'Wrong Authentication'}
+            output = {'status':'Wrong Authentication','code':"201"}
             self.write(output)
 
 

@@ -46,8 +46,6 @@ while True:
         print("""Enter :
         USERNAME | PASSWORD
             """)
-        time.sleep(3)
-        clear()
         while True:
             print("USERNAME : ")
             while True:
@@ -199,7 +197,7 @@ while True:
                 else:
                     print(data['status'])
                 input("Press Any Key To Continue ...")
-                pass
+            
             if func_type[:-1] == '7':
                 CMD = "logout"
                 PARAMS = {'username':USERNAME,'password':PASSWORD}
