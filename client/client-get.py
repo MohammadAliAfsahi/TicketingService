@@ -5,6 +5,7 @@ import time
 import sys
 import platform
 
+
 PARAMS = CMD = USERNAME = PASSWORD = API = TOKEN = ""
 HOST = "localhost"
 PORT = "1104"
@@ -16,15 +17,6 @@ def __authgetcr__():
 
 def __api__():
     return "http://" + HOST + ":" + PORT + "/" + CMD + "/" + API
-
-
-def print_bal(r):
-    print("YOUR BALANCE IS : " + str(r['Balance']))
-
-
-def print_depwith(r):
-    print("YOUR OLD BALANCE IS : " + str(r['Old Balance'])
-          +"\n"+"YOUR NEW BALANCE IS : "+str(r['New Balance']))
 
 
 def clear():
