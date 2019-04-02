@@ -48,6 +48,11 @@ Allow the "ticket" user to connect with the password "ticket":
 
 `mysql> CREATE TABLE tickets ( id smallint unsigned not null auto_increment, subject varchar(50) not null,body varchar(500) NOT NULL, status VARCHAR(20) NOT NULL, userid INT NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP, response VARCHAR(500),constraint pk_example primary key (id) );`
 
+# Give a user Admin privilege
+if you want to give a specific user admin privilege you need to do it manully in mysql database using following command:
+`mysql> update user set admin=1 where id = userid`
+
+you need to replace userid in where clause with id of user you want to become admin.
 # Run project
 `
 $ python server/server.py
