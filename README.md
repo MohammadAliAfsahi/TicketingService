@@ -59,6 +59,9 @@ $ python server/server.py
 `
 
 # Usage
+There is a .mp4 file in this page which you can see how to use this project. 
+for both POST and GET method there is similiar(the difference is in implementation).
+
 The main features are:
 1. login
 2. signup
